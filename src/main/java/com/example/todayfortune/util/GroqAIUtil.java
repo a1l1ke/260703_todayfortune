@@ -6,12 +6,18 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 
 public class GroqAIUtil implements AIUtil {
     private record GroqPayload(String model, String input) {
     }
 
-    private record GroqResult(String text) {
+    private record GroqResult(List<Output> output) {
+        record Output(List<Content> content, String type) {
+        }
+
+        record Content(String type, String text) {
+        }
     }
 
     @Override
@@ -19,7 +25,7 @@ public class GroqAIUtil implements AIUtil {
         // 1. 환경변수 GROQ_API_KEY
         // https://console.groq.com/keys
         String GROQ_API_KEY = System.getenv("GROQ_API_KEY");
-        System.out.println("GROQ_API_KEY = " + GROQ_API_KEY);
+        // System.out.println("GROQ_API_KEY = " + GROQ_API_KEY);
         // 2. HttpClient - header
         // https://console.groq.com/docs/overview
         /*
@@ -52,12 +58,16 @@ public class GroqAIUtil implements AIUtil {
             );
             // 4. HttpResponse - Jackson -> String => Record (GroqResult)
             String body = response.body(); // 문자열 (직렬화)
-            System.out.println("body = " + body);
+//            System.out.println("body = " + body);
+            GroqResult result = objectMapper.readValue(body, GroqResult.class);
+//            System.out.println("result = " + result);
             // 5. return
+            return result.output()
+                    .stream().filter(o -> o.type().equals("message")).toList()
+                    .get(0).content().get(0).text();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return "";
     }
 
     private GroqAIUtil() {
