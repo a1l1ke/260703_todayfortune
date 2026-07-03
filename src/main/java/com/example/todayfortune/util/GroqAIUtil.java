@@ -19,6 +19,7 @@ public class GroqAIUtil implements AIUtil {
         // 1. 환경변수 GROQ_API_KEY
         // https://console.groq.com/keys
         String GROQ_API_KEY = System.getenv("GROQ_API_KEY");
+        System.out.println("GROQ_API_KEY = " + GROQ_API_KEY);
         // 2. HttpClient - header
         // https://console.groq.com/docs/overview
         /*
