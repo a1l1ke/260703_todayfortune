@@ -11,8 +11,9 @@ import java.util.List;
 public class GroqAIUtil implements AIUtil {
     private record GroqPayload(String model, String input) {
     }
+    // 우리가 꼭 전달하고 싶은 속성만 집어넣은 것 -> 원하면 더 복잡한 구조...
 
-    private record GroqResult(List<Output> output) {
+    private record GroqResult(List<Output> output) { // list로 해야 stream 변환 편함
         record Output(List<Content> content, String type) {
         }
 
@@ -38,8 +39,12 @@ public class GroqAIUtil implements AIUtil {
             }'
          */
         String GROQ_API_URL = "https://api.groq.com/openai/v1/responses";
+        // ObjectMapper
+        // -> Object -> String (POST 요청을 위한 직렬화)
+        // -> String -> Object (응답을 받은 JSON 문자열을 객체로 역직렬화)
         ObjectMapper objectMapper = new ObjectMapper();
-        GroqPayload payload = new GroqPayload("openai/gpt-oss-20b", prompt);
+//        GroqPayload payload = new GroqPayload("openai/gpt-oss-20b", prompt);
+        GroqPayload payload = new GroqPayload("qwen/qwen3.6-27b", prompt);
         // 객체로 되어 있는 데이터를 '직렬화'해서 전달하고, (ObjectMapper.writeValueAsString)
         HttpClient httpClient = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
@@ -48,7 +53,9 @@ public class GroqAIUtil implements AIUtil {
                 .header("Content-Type", "application/json")
 //                .POST(HttpRequest.BodyPublishers.ofString(payload))
                 // 3. HttpRequest - body (GroqPayload) -> Jackson
-                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        objectMapper.writeValueAsString(payload) // 객체를 직렬화 (JSON.stringify)
+                ))
                 .build();
         try {
             HttpResponse<String> response = httpClient.send(
@@ -63,7 +70,9 @@ public class GroqAIUtil implements AIUtil {
 //            System.out.println("result = " + result);
             // 5. return
             return result.output()
-                    .stream().filter(o -> o.type().equals("message")).toList()
+                    .stream()
+                    .filter(o -> o.type().equals("message")).toList()
+                    // 추론(reasoning_text) X. 답변(message)만 필터링.
                     .get(0).content().get(0).text();
         } catch (Exception e) {
             throw new RuntimeException(e);
